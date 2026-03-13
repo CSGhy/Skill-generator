@@ -143,9 +143,7 @@ AiSkill/
 [![Sponsor](https://img.shields.io/badge/-Sponsor-fafb7c?style=for-the-badge&logo=GitHub&logoColor=181717)](https://github.com/sponsors/CSGhy)
 
 **微信支付**：
-```
-[微信二维码]
-```
+![微信支付](https://raw.githubusercontent.com/CSGhy/Skill-generator/main/.trae/images/wechat-qr.png)
 
 **支付宝**：
 ```
