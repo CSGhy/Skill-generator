@@ -145,16 +145,6 @@ AiSkill/
 **微信支付**：
 ![微信支付](https://raw.githubusercontent.com/CSGhy/Skill-generator/main/.trae/images/wechat-qr.png)
 
-**支付宝**：
-```
-[支付宝二维码]
-```
-
-**PayPal**：
-```
-[PayPal链接]
-```
-
 #### 赞助者感谢
 
 感谢以下赞助者对本项目的支持！
