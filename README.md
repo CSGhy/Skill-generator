@@ -33,6 +33,7 @@
 - ♿ **可访问性测试**：支持WCAG 2.1标准的可访问性测试
 - 📈 **测试覆盖率分析**：提供代码覆盖率、需求覆盖率等指标
 - 🔄 **自动化转换指导**：提供从测试用例到自动化脚本的转换指导
+- 🧬 **自我进化能力**：基于AutoSkill和XSKILL理论，实现Skill的自我进化，从用户反馈中学习并不断优化
 
 ### 适用场景
 
@@ -91,9 +92,48 @@ AiSkill/
 ├── README.md
 └── .trae/
     └── skills/
-        └── test-case-generator/
-            └── SKILL.md
+        ├── test-case-generator/
+        │   └── SKILL.md
+        ├── lanhu-requirements-doc/
+        │   ├── SKILL.md
+        │   └── examples.md
+        ├── skill_evolution.py
+        └── SKILL_EVOLUTION_GUIDE.md
 ```
+
+### Skill进化系统
+
+本项目实现了基于AutoSkill和XSKILL理论的Skill自我进化能力，让Skill能够从用户反馈中学习，不断优化自身。
+
+#### 核心特性
+
+- **版本控制**：自动管理版本号（major.minor.patch）
+- **反馈收集**：自动收集用户满意度和质量评分
+- **智能进化**：基于反馈自动决定进化策略（MERGE/ADD/DISCARD）
+- **数据分析**：计算平均满意度、调整率，提取常见问题
+- **迭代追踪**：记录每次迭代的详细信息
+
+#### 进化策略
+
+- **MERGE**：满意度>4.5分，合并优化，版本号+1
+- **ADD**：满意度3.0-4.5分，添加新能力，补丁号+1
+- **DISCARD**：满意度<3.0分，标记为需要重构
+
+#### 使用方法
+
+```bash
+# 添加反馈
+python .trae/skills/skill_evolution.py \
+  --skill .trae/skills/test-case-generator/SKILL.md \
+  --add-feedback
+
+# 执行进化
+python .trae/skills/skill_evolution.py \
+  --skill .trae/skills/test-case-generator/SKILL.md \
+  --evolve
+```
+
+详细使用指南请参考：[SKILL_EVOLUTION_GUIDE.md](.trae/skills/SKILL_EVOLUTION_GUIDE.md)
 
 ### 支持的测试类型
 
