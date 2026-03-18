@@ -133,24 +133,6 @@ AiSkill/
 4. 推送到分支 (`git push origin feature/AmazingFeature`)
 5. 开启 Pull Request
 
-### 赞助
-
-如果您觉得这个项目对您有帮助，欢迎赞助支持项目的持续开发！
-
-#### 赞助方式
-
-**GitHub Sponsors**：
-[![Sponsor](https://img.shields.io/badge/-Sponsor-fafb7c?style=for-the-badge&logo=GitHub&logoColor=181717)](https://github.com/sponsors/CSGhy)
-
-**微信支付**：
-![微信支付](https://raw.githubusercontent.com/CSGhy/Skill-generator/main/.trae/images/wechat-qr.png)
-
-#### 赞助者感谢
-
-感谢以下赞助者对本项目的支持！
-
-<!-- 赞助者列表将在这里显示 -->
-
 ### 许可证
 
 本项目采用 MIT 许可证 - 详见 [LICENSE](LICENSE) 文件
@@ -280,36 +262,6 @@ Contributions are welcome! Please follow these steps:
 3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
 4. Push to the branch (`git push origin feature/AmazingFeature`)
 5. Open a Pull Request
-
-### Sponsorship
-
-If you find this project helpful, please consider sponsoring to support its continued development!
-
-#### Sponsorship Options
-
-**GitHub Sponsors**:
-[![Sponsor](https://img.shields.io/badge/-Sponsor-fafb7c?style=for-the-badge&logo=GitHub&logoColor=181717)](https://github.com/sponsors/CSGhy)
-
-**WeChat Pay**:
-```
-[WeChat QR Code]
-```
-
-**Alipay**:
-```
-[Alipay QR Code]
-```
-
-**PayPal**:
-```
-[PayPal Link]
-```
-
-#### Sponsors
-
-Thank you to the following sponsors for supporting this project!
-
-<!-- Sponsor list will appear here -->
 
 ### License
 

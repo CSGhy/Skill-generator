@@ -10,6 +10,81 @@ description: "从代码、需求或用户故事生成全面的测试用例。当
 
 ## 📋 快速参考卡片
 
+### 基本指令格式
+
+```
+/test-case-generator [功能描述] [选项]
+```
+
+#### 参数说明
+
+**必填参数**：
+- `function`：功能描述或需求文档（必填）
+
+**可选参数**：
+- `--type`：测试类型，可选值：`functional`|`boundary`|`negative`|`integration`|`performance`|`security`|`all`（默认：`all`）
+- `--format`：输出格式，可选值：`md`|`csv`|`excel`|`json`|`xml`（默认：`md`）
+- `--priority`：优先级范围，可选值：`p0`|`p1`|`p2`|`p3`|`all`（默认：`all`）
+- `--coverage`：测试覆盖率，可选值：`100`|`80`|`60`|`40`（默认：`100`）
+- `--risk-based`：基于风险的测试（默认：`false`）
+- `--automate`：生成自动化测试建议（默认：`false`）
+- `--template`：自定义模板文件路径（默认：内置模板）
+- `--output`：输出文件路径（默认：当前目录）
+
+#### 参数Schema
+
+```json
+{
+  "function": {
+    "type": "string",
+    "minLength": 1,
+    "description": "功能描述或需求文档"
+  },
+  "type": {
+    "type": "string",
+    "enum": ["functional", "boundary", "negative", "integration", "performance", "security", "all"],
+    "default": "all",
+    "description": "测试类型"
+  },
+  "format": {
+    "type": "string",
+    "enum": ["md", "csv", "excel", "json", "xml"],
+    "default": "md",
+    "description": "输出格式"
+  },
+  "priority": {
+    "type": "string",
+    "enum": ["p0", "p1", "p2", "p3", "all"],
+    "default": "all",
+    "description": "优先级范围"
+  },
+  "coverage": {
+    "type": "integer",
+    "enum": [100, 80, 60, 40],
+    "default": 100,
+    "description": "测试覆盖率"
+  },
+  "risk-based": {
+    "type": "boolean",
+    "default": false,
+    "description": "基于风险的测试"
+  },
+  "automate": {
+    "type": "boolean",
+    "default": false,
+    "description": "生成自动化测试建议"
+  },
+  "template": {
+    "type": "string",
+    "description": "自定义模板文件路径"
+  },
+  "output": {
+    "type": "string",
+    "description": "输出文件路径"
+  }
+}
+```
+
 ### 常用命令
 
 | 命令 | 说明 |
@@ -2120,6 +2195,197 @@ A: 可以识别相似功能并复用测试用例模式：
 - 识别可复用的测试模式
 - 为新功能生成相似的测试用例
 - 减少重复工作，提高效率
+
+## 错误处理
+
+### 常见错误及解决方案
+
+#### 错误1：功能描述不清晰
+
+**错误信息**：
+```
+❌ 错误：功能描述不清晰
+
+详细信息：
+- 提供的描述：{{function}}
+- 缺失的信息：{{missing_info}}
+
+可能原因：
+1. 功能描述过于简短
+2. 缺少关键业务规则
+3. 缺少输入输出说明
+4. 缺少异常场景说明
+
+解决建议：
+1. 提供详细的功能描述
+2. 补充业务规则和约束条件
+3. 说明输入输出格式
+4. 描述异常场景和错误处理
+5. 提供用户故事或验收标准
+```
+
+#### 错误2：文档解析失败
+
+**错误信息**：
+```
+❌ 错误：无法解析需求文档
+
+详细信息：
+- 文档路径：{{doc_path}}
+- 文档格式：{{doc_format}}
+- 文档大小：{{doc_size}}MB
+
+可能原因：
+1. 文档格式不支持
+2. 文档过大（>10MB）
+3. 文档内容格式错误
+4. 文档损坏或加密
+
+解决建议：
+1. 检查文档格式是否支持（PDF/Word/Excel）
+2. 确保文档大小小于10MB
+3. 检查文档内容格式是否正确
+4. 尝试重新导出文档
+5. 使用文本格式提供需求描述
+```
+
+#### 错误3：测试类型不支持
+
+**错误信息**：
+```
+❌ 错误：测试类型不支持
+
+详细信息：
+- 提供的类型：{{type}}
+- 支持的类型：functional, boundary, negative, integration, performance, security, all
+
+可能原因：
+1. 测试类型拼写错误
+2. 使用了不支持的测试类型
+3. 测试类型格式错误
+
+解决建议：
+1. 检查测试类型拼写是否正确
+2. 使用支持的测试类型：functional, boundary, negative, integration, performance, security, all
+3. 参考参数说明中的测试类型列表
+```
+
+#### 错误4：输出格式不支持
+
+**错误信息**：
+```
+❌ 错误：输出格式不支持
+
+详细信息：
+- 提供的格式：{{format}}
+- 支持的格式：md, csv, excel, json, xml
+
+可能原因：
+1. 输出格式拼写错误
+2. 使用了不支持的输出格式
+3. 输出格式格式错误
+
+解决建议：
+1. 检查输出格式拼写是否正确
+2. 使用支持的输出格式：md, csv, excel, json, xml
+3. 参考参数说明中的输出格式列表
+```
+
+#### 错误5：输出文件写入失败
+
+**错误信息**：
+```
+❌ 错误：无法写入输出文件
+
+详细信息：
+- 输出路径：{{output_path}}
+- 错误原因：{{error_message}}
+
+可能原因：
+1. 输出目录不存在
+2. 没有写入权限
+3. 磁盘空间不足
+4. 文件名包含非法字符
+
+解决建议：
+1. 检查输出目录是否存在
+2. 检查是否有写入权限
+3. 检查磁盘空间是否充足
+4. 使用合法的文件名
+5. 手动创建输出目录：mkdir -p {{output_dir}}
+```
+
+### 错误恢复机制
+
+#### 自动重试
+对于临时性错误，系统会自动重试：
+- 文档解析失败：自动重试2次
+- 格式转换失败：自动重试1次
+- 网络请求失败：自动重试3次
+
+#### 人工介入
+对于需要人工介入的错误，系统会提供详细的错误信息和解决建议：
+- 功能描述不清晰：提供补充信息建议
+- 文档解析失败：提供文档格式建议
+- 参数错误：提供参数格式说明
+- 权限错误：提供权限检查建议
+
+## 工具按需加载
+
+为了避免工具太多撑爆上下文，采用按需加载策略：
+
+### 基础工具（始终加载）
+- `test-case-generator`：主工具
+- `validate-function-desc`：功能描述验证
+
+### 高级工具（按需加载）
+- `risk-based-analysis`：基于风险的分析（当使用--risk-based参数时加载）
+- `automate-suggestion`：自动化测试建议（当使用--automate参数时加载）
+- `coverage-calculation`：测试覆盖率计算（当使用--coverage参数时加载）
+
+### 扩展工具（按需加载）
+- `custom-template`：自定义模板（当使用--template参数时加载）
+- `format-converter`：格式转换（当使用--format参数且非md时加载）
+
+### 工具加载示例
+
+```bash
+# 基础使用：只加载基础工具
+/test-case-generator "登录功能"
+# 加载工具：test-case-generator, validate-function-desc
+
+# 基于风险的测试：加载基础工具+风险分析工具
+/test-case-generator "登录功能" --risk-based=true
+# 加载工具：test-case-generator, validate-function-desc, risk-based-analysis
+
+# 自动化测试建议：加载基础工具+自动化建议工具
+/test-case-generator "登录功能" --automate=true
+# 加载工具：test-case-generator, validate-function-desc, automate-suggestion
+
+# 测试覆盖率：加载基础工具+覆盖率计算工具
+/test-case-generator "登录功能" --coverage=80
+# 加载工具：test-case-generator, validate-function-desc, coverage-calculation
+
+# 格式转换：加载基础工具+格式转换工具
+/test-case-generator "登录功能" --format=excel
+# 加载工具：test-case-generator, validate-function-desc, format-converter
+
+# 完整功能：加载所有工具
+/test-case-generator "登录功能" \
+  --risk-based=true \
+  --automate=true \
+  --coverage=80 \
+  --format=excel \
+  --template=./templates/custom.md
+# 加载工具：所有工具
+```
+
+### 工具数量控制
+
+- **基础场景**：加载2个工具
+- **高级场景**：加载3-4个工具
+- **完整场景**：加载5-6个工具
+- **最大工具数**：6个（避免上下文溢出）
 
 ## 附录：测试用例编号规则
 
