@@ -1,3 +1,8 @@
+---
+name: "lanhu-requirements-doc"
+description: "蓝湖需求文档生成器 - 从蓝湖平台自动拉取原型数据并生成标准化需求文档"
+---
+
 # 蓝湖需求文档生成器
 
 ## 概述
