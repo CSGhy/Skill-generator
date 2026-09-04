@@ -1,11 +1,17 @@
 ---
 name: "self-improving-helper"
 description: "自我改进助手 - 记录反馈、分析错误、提供改进建议，帮助测试用例生成系统持续优化"
----------------------------------------------------------------
+version: "1.2.0"
+last_updated: "2026-09-03"
+---
 
 # 自我改进助手
 
+本 SKILL 遵循 [_shared/standards.md](../_shared/standards.md) 的公共标准。
+
 这个SKILL用于记录用户反馈、分析常见错误、提供改进建议，帮助测试用例生成系统持续优化和自我进化。
+
+**在生成系统中的角色**：被 [test-case-generator-core](../test-case-generator-core/SKILL.md) 在生成后调用，记录本次生成的不足和用户反馈；下次生成时读取历史反馈避免重复犯错，形成「生成后反馈」闭环。
 
 ## 📋 快速参考卡片
 
@@ -23,7 +29,7 @@ description: "自我改进助手 - 记录反馈、分析错误、提供改进建
 **可选参数**：
 - `--type`：反馈类型，可选值：`error`|`suggestion`|`bug`|`improvement`|`other`（默认：`other`）
 - `--priority`：优先级，可选值：`high`|`medium`|`low`（默认：`medium`）
-- `--skill`：相关SKILL，可选值：`test-case-generator`|`test-case-generator-core`|`test-case-api-generator`|`test-case-automation-guide`|`test-case-reviewer`|`test-case-report-generator`（默认：自动识别）
+- `--skill`：相关SKILL，可选值：`test-case-generator`|`test-case-generator-core`|`test-case-api-generator`|`test-case-security-generator`|`test-case-automation-guide`|`test-case-reviewer`|`test-case-report-generator`|`test-case-defect-manager`|`jmeter-test-script-generator`|`test-case-xinchuang`|`test-case-execution-helper`|`knowledge-base`|`self-improving-helper`|`multi-agent-test-auditor`（默认：自动识别）
 
 #### 参数Schema
 
@@ -48,7 +54,7 @@ description: "自我改进助手 - 记录反馈、分析错误、提供改进建
   },
   "skill": {
     "type": "string",
-    "enum": ["test-case-generator", "test-case-generator-core", "test-case-api-generator", "test-case-automation-guide", "test-case-reviewer", "test-case-report-generator"],
+    "enum": ["test-case-generator", "test-case-generator-core", "test-case-api-generator", "test-case-security-generator", "test-case-automation-guide", "test-case-reviewer", "test-case-report-generator", "test-case-defect-manager", "jmeter-test-script-generator", "test-case-xinchuang", "test-case-execution-helper", "knowledge-base", "self-improving-helper", "multi-agent-test-auditor"],
     "description": "相关SKILL"
   }
 }
@@ -73,6 +79,7 @@ description: "自我改进助手 - 记录反馈、分析错误、提供改进建
 
 ### 核心内容
 - [智能体人设](#智能体人设)
+- [反馈存储与闭环协议](#反馈存储与闭环协议)
 - [反馈收集](#反馈收集)
 - [错误分析](#错误分析)
 - [改进建议](#改进建议)
@@ -181,6 +188,47 @@ description: "自我改进助手 - 记录反馈、分析错误、提供改进建
 - **建设性**：提供具体的改进建议
 - **感谢性**：对用户的反馈表示感谢
 
+## 反馈存储与闭环协议
+
+本 SKILL 不是「口头闭环」——反馈必须落盘到文件，生成器下次生成前必须读取，这才是真正的闭环。
+
+### 存储文件
+
+- 路径：`_shared/feedback/feedback.json`（与工作区其他 SKILL 共享，跨会话持久）
+- 结构：
+  - `entries[]`：原始反馈记录，逐条追加，**永不删除**（仅改 `status`）
+  - `lessons[]`：从反馈中提炼的「可执行规则」，是生成器生成前真正要读取的内容
+
+### lessons 条目结构
+
+```json
+{
+  "lesson_id": "LS001",
+  "from_feedback": ["FB20260903001"],
+  "applies_to_skill": "test-case-generator-core | all",
+  "trigger": "生成登录/鉴权类用例时",
+  "action": "必须包含边界值与负向登录用例，并调用 validate_test_cases.py 校验",
+  "severity": "high | medium | low",
+  "created_at": "ISO8601"
+}
+```
+
+### 闭环流程（硬性要求）
+
+1. **生成前读取（read-before-generate）**
+   - 被 test-case-generator 调用时，先读取 `_shared/feedback/feedback.json`
+   - 取出 `lessons[]` 中 `applies_to_skill` 为 `all` 或匹配当前子 SKILL 的条目
+   - 将这些 `action` 作为硬约束注入生成上下文（例如「生成登录类用例时，必须包含边界值」）
+
+2. **生成后写入（write-after-generate）**
+   - 生成结束、或用户给出反馈时，追加一条 `entries[]` 记录（feedback_id 规则 `FB{YYYYMMDD}{两位序号}`）
+   - 若同类问题已出现过（同 skill + 同 trigger 关键词），升级/更新对应 `lessons[]` 条目，而非重复新建
+   - 落盘后向用户确认已记录
+
+3. **复盘（report）**
+   - 生成优化报告时扫描 `entries[]`，统计高频错误并输出
+   - 报告中的「改进建议」优先引用已有 `lessons[]`
+
 ## 反馈收集
 
 ### 反馈类型
@@ -222,7 +270,7 @@ description: "自我改进助手 - 记录反馈、分析错误、提供改进建
   "feedback_id": "FB20260318001",
   "type": "error|suggestion|bug|improvement|other",
   "priority": "high|medium|low",
-  "skill": "test-case-generator|test-case-generator-core|test-case-api-generator|test-case-automation-guide|test-case-reviewer|test-case-report-generator",
+  "skill": "test-case-generator|test-case-generator-core|test-case-api-generator|test-case-security-generator|test-case-automation-guide|test-case-reviewer|test-case-report-generator|test-case-defect-manager|jmeter-test-script-generator|test-case-xinchuang|test-case-execution-helper|knowledge-base|self-improving-helper|multi-agent-test-auditor",
   "content": "反馈内容",
   "user_id": "用户ID",
   "timestamp": "2026-03-18T10:00:00Z",
@@ -504,6 +552,19 @@ description: "自我改进助手 - 记录反馈、分析错误、提供改进建
 ```
 
 ## 版本历史
+
+### v1.2.0 (2026-09-03)
+- 把「口头闭环」变为真实文件闭环：新增 `_shared/feedback/feedback.json` 存储（entries[] 原始反馈 + lessons[] 可执行规则）
+- 新增「反馈存储与闭环协议」章节：明确 read-before-generate / write-after-generate / report 三步硬性流程
+- `--skill` 枚举补全全部 14 个现有 SKILL（含 xinchuang / execution-helper / defect-manager / security / jmeter / auditor）
+- 迭代次数：1
+
+### v1.1.0 (2026-08-18)
+- 引用 [_shared/standards.md](../_shared/standards.md) 公共标准
+- skill 枚举补全：新增 `knowledge-base` 和 `self-improving-helper`
+- 说明在生成系统中的「生成后反馈」闭环角色
+- 修复 frontmatter
+- 迭代次数：1
 
 ### v1.0.0 (2026-03-18)
 - 创建自我改进助手

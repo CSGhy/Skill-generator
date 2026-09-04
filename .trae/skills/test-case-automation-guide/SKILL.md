@@ -1,9 +1,13 @@
 ---
 name: "test-case-automation-guide"
 description: "测试自动化指导 - 提供测试用例自动化转换指导，包括框架选择、转换步骤、环境准备、CI/CD集成等"
----------------------------------------------------------------
+version: "1.1.0"
+last_updated: "2026-08-18"
+---
 
 # 测试自动化指导
+
+本 SKILL 遵循 [_shared/standards.md](../_shared/standards.md) 的公共标准，并对照工作区 [测试金字塔原则](../../rules/测试金字塔原则.md) 优先产出单元测试。
 
 这个skill专注于测试用例的自动化转换，提供从手工测试用例到自动化测试的完整指导，包括框架选择、转换步骤、环境准备、CI/CD集成等。
 
@@ -76,13 +80,51 @@ description: "测试自动化指导 - 提供测试用例自动化转换指导，
 
 | 框架 | 语言 | 适用场景 | 优势 |
 |------|------|---------|------|
-| Selenium | Java/Python | Web自动化 | 生态丰富 |
-| Playwright | JavaScript/TypeScript | Web自动化 | 现代化、快速 |
-| Appium | Java/Python | 移动端自动化 | 跨平台 |
-| Pytest | Python | 接口自动化 | 简洁易用 |
+| Pytest | Python | 单元测试/接口测试 | 简洁易用 |
 | JUnit | Java | 单元测试 | 成熟稳定 |
+| Selenium | Java/Python | Web自动化（E2E） | 生态丰富 |
+| Playwright | JavaScript/TypeScript | Web自动化（E2E） | 现代化、快速 |
+| Appium | Java/Python | 移动端自动化（E2E） | 跨平台 |
 | Cypress | JavaScript | E2E测试 | 开发者友好 |
-| Puppeteer | JavaScript | Web自动化 | Chrome原生 |
+| Puppeteer | JavaScript | Web自动化（E2E） | Chrome原生 |
+
+### 按测试层级选择框架（对照测试金字塔原则）
+
+遵循 [测试金字塔原则](../../rules/测试金字塔原则.md)，优先产出底层测试：
+
+| 测试层级 | 占比目标 | 推荐框架 | 说明 |
+|---------|---------|---------|------|
+| unit（单元测试） | 70% | Pytest / JUnit | 函数/方法/组件级，毫秒级执行，必须优先 |
+| integration（集成测试） | 20% | Pytest / JUnit / Selenium | 模块间调用、接口集成 |
+| e2e（端到端测试） | 10% | Selenium / Playwright / Cypress / Appium | 完整业务主流程，只测 P0 核心场景 |
+
+> ⚠️ 自动化转换时必须先识别用例的「测试层级」字段：
+> - unit 层用例 → 生成 Pytest/JUnit 单测代码
+> - integration 层用例 → 生成接口集成测试代码
+> - e2e 层用例 → 生成 Selenium/Playwright/Cypress E2E 代码
+>
+> 禁止将所有用例都转为 E2E 自动化（避免冰淇淋蛋筒反模式）。
+
+### 按策略家族选择框架（对齐 multi-agent-test-auditor）
+
+遵循 [_shared/standards.md 测试策略家族](../_shared/standards.md#五-b测试策略家族与测试类型正交)，根据用例的「策略家族」字段选择对应工具链：
+
+| 策略家族 | 推荐工具 | 适用语言 | 说明 |
+|---------|---------|---------|------|
+| equivalence_boundary | pytest-parametrize / jest-each | Python / JS | 等价类+边界值参数化 |
+| property_based | Hypothesis / fast-check | Python / JS/TS | 属性测试，找不变式 |
+| contract_test | Pact / Spring Cloud Contract | 多语言 | 消费者驱动契约测试 |
+| mutation_test | Stryker / mutmut | JS/TS / Python | 变异测试，反向驱动盲点 |
+| state_model | AltWalker / GraphWalker | Python / Java | 状态机模型测试 |
+| fuzz_chaos | Atheris / Chaos Mesh | Python / K8s | 模糊测试+混沌工程 |
+| perf_profile | Locust / k6 / Gatling | Python / JS / Java | 阶梯/脉冲/雪崩负载 |
+| attack_surface | Semgrep / OWASP ZAP / Burp | 多语言 | 注入/越权/SSRF/重放 |
+| manual_heuristic | 同「按测试层级选择框架」表 | — | 兜底家族，按层级选框架 |
+
+> ⚠️ 自动化转换时必须同时识别「测试层级」和「策略家族」两个字段：
+> - 先按策略家族匹配专用工具（如 property_based → Hypothesis）
+> - 若无专用工具（如 manual_heuristic），退回到按测试层级选择框架
+> - 复杂策略家族（mutation_test / fuzz_chaos / attack_surface）建议转交 [multi-agent-test-auditor](../multi-agent-test-auditor/SKILL.md)
 
 ## 📑 文档目录
 
@@ -96,6 +138,7 @@ description: "测试自动化指导 - 提供测试用例自动化转换指导，
 - [框架选择指南](#框架选择指南)
 - [转换步骤](#转换步骤)
 - [环境准备](#环境准备)
+- [计算合理性验证](#计算合理性验证)
 - [CI/CD集成](#cicd集成)
 - [使用示例](#使用示例)
 
@@ -164,8 +207,8 @@ description: "测试自动化指导 - 提供测试用例自动化转换指导，
 
 | 字段 | 说明 | 必填 | 示例 |
 |------|------|------|------|
-| 用例ID | 唯一标识 | 是 | AT001 |
-| 原用例ID | 对应的手工测试用例ID | 是 | TC001 |
+| 用例ID | 唯一标识 | 是 | AT_LOGIN_001 |
+| 原用例ID | 对应的手工测试用例ID | 是 | LOGIN_001 |
 | 测试场景 | 测试场景描述 | 是 | 自动化登录测试 |
 | 测试步骤 | 自动化测试步骤 | 是 | 1.打开浏览器<br>2.输入用户名<br>3.输入密码<br>4.点击登录 |
 | 验证点 | 自动化验证点 | 是 | 验证登录成功 |
@@ -174,27 +217,19 @@ description: "测试自动化指导 - 提供测试用例自动化转换指导，
 
 ### 自动化测试用例编号规则
 
-#### 编号规则
+遵循 [_shared/standards.md](../_shared/standards.md#一用例-id-格式) 的 ID 格式：
 
 ```
-AT{模块编号}{接口编号}{序号}
+AT_{模块缩写}_{序号}
 ```
 
-#### 模块编号
-
-| 模块 | 编号 |
-|------|------|
-| 用户管理 | 01 |
-| 商品管理 | 02 |
-| 订单管理 | 03 |
-| 支付管理 | 04 |
-
-#### 示例
-
+示例：
 ```
-AT01001：用户管理模块自动化测试第1条测试用例
-AT02005：商品管理模块自动化测试第5条测试用例
+AT_LOGIN_001：登录模块自动化测试第 1 条
+AT_CART_005：购物车模块自动化测试第 5 条
 ```
+
+> ⚠️ 旧的 `AT01001` 纯数字格式已废弃。
 
 ## 框架选择指南
 
@@ -491,6 +526,51 @@ environments:
 }
 ```
 
+## 计算合理性验证
+
+生成自动化测试代码后，**先跑一次**，验证用例的预期结果与实际行为是否一致。这是比 Schema 校验更强的验证——Schema 校验只检查格式，计算验证检查语义正确性。
+
+### 验证流程
+
+1. **执行测试**：在测试环境跑生成的自动化代码
+2. **比对结果**：每条用例的实际结果 vs 预期结果
+3. **标记偏差**：
+   - ✅ 一致 → 用例通过计算验证
+   - ❌ 不一致 → 标记「预期结果待修正」，附实际输出
+4. **修正预期**：根据实际输出修正用例的预期结果字段
+5. **回归确认**：修正后重跑，确认通过
+
+### 偏差分类
+
+| 偏差类型 | 含义 | 处理方式 |
+|---------|------|---------|
+| 预期过于笼统 | 预期写"提示错误"，实际提示"密码长度不足" | 修正预期为具体输出 |
+| 预期过时 | 接口返回格式已变更 | 修正预期为当前实际格式 |
+| 预期错误 | 预期写"登录成功"，实际登录失败 | 检查前置条件或测试数据 |
+| 时序问题 | 异步操作预期过早断言 | 增加等待或轮询 |
+
+### 输出格式
+
+```
+=== 计算合理性验证报告 ===
+总用例数: 15
+通过验证: 12
+预期待修正: 3
+
+待修正用例:
+  [API_LOGIN_003] 预期: {"code":0}  实际: {"code":1001,"msg":"密码错误"}
+    → 偏差类型: 预期错误（检查前置条件：用户是否已注册）
+  [API_LOGIN_007] 预期: 提示错误  实际: 提示"用户名不能为空"
+    → 偏差类型: 预期过于笼统（修正为具体输出）
+  [API_USER_002] 预期: 返回用户信息  实际: {"code":401,"msg":"未授权"}
+    → 偏差类型: 预期过时（接口需要先获取 token）
+
+修正后请重新运行: python validate_test_cases.py cases.json
+```
+
+> ⚠️ 计算验证不是可选步骤——预期结果未经实际执行验证的用例集，不能视为"已就绪"。
+> 如果无法执行（如缺少测试环境），应在用例集上标注「未经计算验证」。
+
 ## CI/CD集成
 
 ### GitHub Actions配置
@@ -720,6 +800,14 @@ test.describe('Login Tests', () => {
 - 发现代码质量问题时，推荐代码优化最佳实践
 
 ## 版本历史
+
+### v1.1.0 (2026-08-18)
+- 引用 [_shared/standards.md](../_shared/standards.md) 公共标准
+- 新增「按测试层级选择框架」指南（对照 [测试金字塔原则](../../rules/测试金字塔原则.md)，unit 优先）
+- 自动化转换前必须先识别用例的「测试层级」字段，禁止全部转 E2E
+- 框架表调整：Pytest/JUnit 归类为单元测试优先
+- 修复 frontmatter
+- 迭代次数：1
 
 ### v1.0.0 (2026-03-18)
 - 创建测试自动化指导

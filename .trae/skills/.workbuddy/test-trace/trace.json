@@ -1,0 +1,13 @@
+{
+  "version": "1.0",
+  "schema": {
+    "cases": {
+      "用例ID": { "defects": ["缺陷ID"], "description": "用例描述" }
+    },
+    "defects": {
+      "缺陷ID": { "case": "用例ID", "status": "新建|已指派|处理中|待验证|已关闭|重开|延期|不予处理", "severity": "P0|P1|P2|P3|P4" }
+    }
+  },
+  "cases": {},
+  "defects": {}
+}

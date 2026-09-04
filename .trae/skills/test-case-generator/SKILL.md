@@ -1,11 +1,17 @@
 ---
 name: "test-case-generator"
 description: "测试用例生成器主入口 - 根据用户需求智能选择合适的专门SKILL，包括核心生成器、API测试、自动化指导、测试用例评审、测试报告等"
----------------------------------------------------------------
+version: "3.3.1"
+last_updated: "2026-09-04"
+---
 
 # 测试用例生成器
 
+本 SKILL 遵循 [_shared/standards.md](../_shared/standards.md) 的公共标准。
+
 这个skill是测试用例生成系统的主入口，它会根据您的需求智能选择合适的专门SKILL来完成任务。我们提供了多个专门的SKILL，每个SKILL专注于特定的测试场景，提供更专业、更高效的服务。
+
+**主入口职责**：文档类型识别、SKILL 路由、闭环协调（生成前查 knowledge-base、生成后写 self-improving-helper）。文档类型识别结果会传给被调用的子 SKILL，子 SKILL 不再重复识别。
 
 ## 📋 快速参考卡片
 
@@ -22,9 +28,9 @@ description: "测试用例生成器主入口 - 根据用户需求智能选择合
 
 **可选参数**：
 - `--doc-type`：文档类型，可选值：`prd`|`requirement`|`api`|`user-story`|`code`|`auto`（默认：`auto`自动识别）
-- `--type`：测试类型，可选值：`functional`|`boundary`|`negative`|`integration`|`performance`|`security`|`all`（默认：`all`）
+- `--type`：测试类型，可选值：`functional`|`boundary`|`equivalence`|`negative`|`integration`|`unit`|`e2e`|`compatibility`|`security`|`performance`|`all`（默认：`all`）。注：本 SKILL 是**路由入口**，`security`/`performance` 会被转交专门 SKILL 生成（`security` → test-case-security-generator，`performance` → jmeter-test-script-generator），不在此处直接产出
 - `--standard`：测试标准，可选值：`standard`|`api`|`automation`|`custom`（默认：`standard`）
-- `--format`：输出格式，可选值：`md`|`csv`|`excel`|`json`|`xml`|`word`（默认：`csv`）
+- `--format`：输出格式，可选值：`md`|`csv`|`excel`|`json`|`xml`|`word`（默认：`md`）
 - `--priority`：优先级范围，可选值：`p0`|`p1`|`p2`|`p3`|`all`（默认：`all`）
 - `--coverage`：测试覆盖率，可选值：`100`|`80`|`60`|`40`（默认：`100`）
 
@@ -45,7 +51,7 @@ description: "测试用例生成器主入口 - 根据用户需求智能选择合
   },
   "type": {
     "type": "string",
-    "enum": ["functional", "boundary", "negative", "integration", "performance", "security", "all"],
+    "enum": ["functional", "boundary", "equivalence", "negative", "integration", "unit", "e2e", "compatibility", "security", "performance", "all"],
     "default": "all",
     "description": "测试类型"
   },
@@ -98,9 +104,14 @@ description: "测试用例生成器主入口 - 根据用户需求智能选择合
 ### 专门SKILL
 - [test-case-generator-core](#test-case-generator-core) - 核心生成器
 - [test-case-api-generator](#test-case-api-generator) - API测试专门
+- [test-case-security-generator](#test-case-security-generator) - 安全测试专门
 - [test-case-automation-guide](#test-case-automation-guide) - 自动化指导
 - [test-case-reviewer](#test-case-reviewer) - 测试用例评审
 - [test-case-report-generator](#test-case-report-generator) - 测试报告
+- [test-case-defect-manager](#test-case-defect-manager) - 缺陷管理
+- [jmeter-test-script-generator](#jmeter-test-script-generator) - 性能测试脚本
+- [test-case-xinchuang](#test-case-xinchuang) - 信创/国产化/政务适配
+- [test-case-execution-helper](#test-case-execution-helper) - 手工测试执行助手
 
 ## 快速开始
 
@@ -170,11 +181,15 @@ API测试用例已生成，共15条。是否需要：
 
 | 文档类型 | 推荐SKILL | 说明 |
 |---------|----------|------|
-| PRD | test-case-generator-core | 生成标准测试用例 |
+| PRD | test-case-generator-core | 生成标准测试用例（含 unit/integration/e2e 分层） |
 | 需求说明 | test-case-generator-core | 生成标准测试用例 |
 | 接口文档 | test-case-api-generator | 生成API测试用例 |
 | 用户故事 | test-case-generator-core | 生成标准测试用例 |
-| 代码 | test-case-automation-guide | 生成自动化测试 |
+| 代码 | test-case-generator-core + test-case-automation-guide | core 生成单元测试用例，automation-guide 转换为自动化代码 |
+| 安全需求/威胁建模 | test-case-security-generator | 生成 OWASP Top 10 安全测试用例 |
+| 性能需求/压测目标 | jmeter-test-script-generator | 生成 JMeter .jmx 性能测试脚本 |
+| 信创/国产化/政务需求 | test-case-xinchuang | 生成国产栈兼容/合规/国密用例 |
+| 手工执行/探索式/巡检/复现 | test-case-execution-helper | 执行记录与偶现复现辅助 |
 
 ### 根据需求选择
 
@@ -182,9 +197,14 @@ API测试用例已生成，共15条。是否需要：
 |------|----------|------|
 | 生成测试用例 | test-case-generator-core | 生成标准测试用例 |
 | 生成API测试用例 | test-case-api-generator | 生成API测试用例 |
+| 生成安全测试用例 | test-case-security-generator | 生成 OWASP Top 10 / attack_surface 用例 |
+| 生成性能测试脚本 | jmeter-test-script-generator | 生成 JMeter .jmx 脚本 |
 | 转换为自动化测试 | test-case-automation-guide | 提供自动化指导 |
 | 评审测试用例质量 | test-case-reviewer | 评审测试用例 |
 | 生成测试报告 | test-case-report-generator | 生成测试报告 |
+| 缺陷管理/追溯 | test-case-defect-manager | 缺陷生命周期管理与用例↔缺陷追溯 |
+| 信创适配/国产化/政务合规测试 | test-case-xinchuang | 国产OS/数据库/浏览器/国密/专网 |
+| 手工测试执行/探索式/巡检/偶现复现 | test-case-execution-helper | 执行记录与复现辅助 |
 
 ### 根据测试标准选择
 
@@ -194,6 +214,21 @@ API测试用例已生成，共15条。是否需要：
 | API测试规范 | test-case-api-generator | API测试用例 |
 | 自动化测试规范 | test-case-automation-guide | 自动化测试指导 |
 | 自定义测试标准 | test-case-generator-core | 支持自定义模板 |
+
+### 复杂审计场景转交（对齐 multi-agent-test-auditor）
+
+本系列生成器面向**单视角 / 中等复杂度**场景。下列复杂审计场景应直接转交 [multi-agent-test-auditor](../multi-agent-test-auditor/SKILL.md)，不要硬塞给本系列：
+
+| 复杂场景 | 转交方 | 理由 |
+|---------|--------|------|
+| 核心业务流程回归套件设计（支付/风控/订单状态机） | multi-agent-test-auditor | 需要多视角对抗式审计 |
+| 安全测试（注入/越权/SSRF/重放/供应链） | multi-agent-test-auditor | 需要攻击面分析+对抗审计 |
+| 缺陷根因分析（多假设并存、对抗证伪） | multi-agent-test-auditor | 需要变异驱动+反例证伪 |
+| 需要变异分数报告/覆盖率盲点扫描 | multi-agent-test-auditor | 需要计算闸门，本系列不产出 |
+| 需要可执行测试代码（pytest/jest）而非用例表格 | multi-agent-test-auditor 或 test-case-automation-guide | 本系列产出用例表格 |
+
+> 判断口径：若任务需要"多轮对抗迭代 + 独立审计签字 + 变异分数闸门"，转交 multi-agent-test-auditor；若只需"按文档生成结构化用例表格"，用本系列生成器。
+> 详见 [test-case-generator-core 路由规则](../test-case-generator-core/SKILL.md#路由规则与-multi-agent-test-auditor-的边界)。
 
 ## 专门SKILL
 
@@ -210,7 +245,7 @@ API测试用例已生成，共15条。是否需要：
 **主要特性**：
 - 支持文档类型自动识别
 - 支持标准测试规范
-- 支持多种测试类型（功能/边界/负向/集成）
+- 支持多种测试类型（functional / boundary / negative / integration）
 - 支持多种输出格式（md/csv/excel）
 
 **调用方式**：
@@ -218,7 +253,7 @@ API测试用例已生成，共15条。是否需要：
 /test-case-generator-core [功能描述或文档] [选项]
 ```
 
-**详细文档**：[test-case-generator-core](file:///d:/Program%20Files/Code/AiSkill/.trae/skills/test-case-generator-core/SKILL.md)
+**详细文档**：[test-case-generator-core](../test-case-generator-core/SKILL.md)
 
 ### test-case-api-generator
 
@@ -232,7 +267,7 @@ API测试用例已生成，共15条。是否需要：
 **主要特性**：
 - 支持接口文档解析
 - 支持API测试规范
-- 支持多种测试类型（正常功能/参数验证/边界值/错误码/认证/性能）
+- 支持多种测试类型（functional / boundary / negative / security / performance）
 - 支持多种输出格式（md/csv/excel/json/postman）
 
 **调用方式**：
@@ -240,7 +275,31 @@ API测试用例已生成，共15条。是否需要：
 /test-case-api-generator [API文档或接口描述] [选项]
 ```
 
-**详细文档**：[test-case-api-generator](file:///d:/Program%20Files/Code/AiSkill/.trae/skills/test-case-api-generator/SKILL.md)
+**详细文档**：[test-case-api-generator](../test-case-api-generator/SKILL.md)
+
+### test-case-security-generator
+
+**功能**：安全测试用例生成器
+
+**适用场景**：
+- 从接口文档生成安全测试用例
+- OWASP Top 10 合规检查
+- 注入/越权/SSRF/敏感数据泄露/认证等攻击面测试
+- 生成可执行扫描脚本（ZAP/Burp/Semgrep/Nuclei）
+
+**主要特性**：
+- 对齐 OWASP Top 10 风险分类
+- 覆盖 `attack_surface` 策略家族
+- 用例 ID 格式 `SEC_{模块缩写}_{序号}`
+- 支持 ZAP / Semgrep / Nuclei 可执行脚本生成
+- 复杂安全审计转交 multi-agent-test-auditor
+
+**调用方式**：
+```
+/test-case-security-generator [功能描述或接口文档] [选项]
+```
+
+**详细文档**：[test-case-security-generator](../test-case-security-generator/SKILL.md)
 
 ### test-case-automation-guide
 
@@ -265,7 +324,7 @@ API测试用例已生成，共15条。是否需要：
 /test-case-automation-guide [测试用例] [选项]
 ```
 
-**详细文档**：[test-case-automation-guide](file:///d:/Program%20Files/Code/AiSkill/.trae/skills/test-case-automation-guide/SKILL.md)
+**详细文档**：[test-case-automation-guide](../test-case-automation-guide/SKILL.md)
 
 ### test-case-reviewer
 
@@ -291,7 +350,7 @@ API测试用例已生成，共15条。是否需要：
 /test-case-reviewer [测试用例] [选项]
 ```
 
-**详细文档**：[test-case-reviewer](file:///d:/Program%20Files/Code/AiSkill/.trae/skills/test-case-reviewer/SKILL.md)
+**详细文档**：[test-case-reviewer](../test-case-reviewer/SKILL.md)
 
 ### test-case-report-generator
 
@@ -316,7 +375,106 @@ API测试用例已生成，共15条。是否需要：
 /test-case-report-generator [测试结果] [选项]
 ```
 
-**详细文档**：[test-case-report-generator](file:///d:/Program%20Files/Code/AiSkill/.trae/skills/test-case-report-generator/SKILL.md)
+**详细文档**：[test-case-report-generator](../test-case-report-generator/SKILL.md)
+
+### test-case-defect-manager
+
+**功能**：缺陷管理器
+
+**适用场景**：
+- 缺陷录入与生命周期管理（新建→已指派→处理中→待验证→已关闭）
+- 用例↔缺陷双向追溯
+- 缺陷统计报告与质量门禁
+- 缺陷重开/延期/不予处理
+
+**主要特性**：
+- 落地工作区规则 [缺陷报告规范.md](../../rules/缺陷报告规范.md)（P0-P4 分级、生命周期、附件要求）
+- 缺陷 ID 格式 `BUG_{模块缩写}_{序号}`
+- 用例「关联缺陷ID」字段回写，建立追溯矩阵
+- 质量门禁（P0=0, P1≤2, 修复率≥70%）
+- 缺陷模式反馈到 self-improving-helper，反哺生成器加强薄弱场景
+
+**调用方式**：
+```
+/test-case-defect-manager [操作] [参数]
+```
+
+**详细文档**：[test-case-defect-manager](../test-case-defect-manager/SKILL.md)
+
+### jmeter-test-script-generator
+
+**功能**：JMeter 性能测试脚本生成器
+
+**适用场景**：
+- 从接口文档生成 JMeter .jmx 测试脚本
+- 单接口/多接口流程/并发/压力/稳定性测试
+- 性能目标配置（TPS / P95 / 错误率）
+- 安全测试场景（SQL注入/越权/敏感信息泄露）
+
+**主要特性**：
+- 用例 ID 格式 `PERF_{模块缩写}_{序号}`，对齐公共标准
+- 测试类型 `performance`，策略家族 `perf_profile`
+- 三场景测试模板（基准/负载/压力）
+- 同步产出用例元数据表 `.meta.md`，纳入统一追溯
+- 复杂性能审计转交 multi-agent-test-auditor
+
+**调用方式**：
+```
+/jmeter-test-script-generator [API文档或接口描述] [选项]
+```
+
+**详细文档**：[jmeter-test-script-generator](../jmeter-test-script-generator/SKILL.md)
+
+### test-case-xinchuang
+
+**功能**：信创/国产化/政务适配测试用例生成器
+
+**适用场景**：
+- 国产操作系统（UOS / 统信 / 麒麟 / 中标麒麟）兼容测试
+- 国产数据库（达梦 DM / 人大金仓 Kingbase / 神舟通用）迁移与兼容
+- 国产中间件（东方通 TongWeb / 宝兰德 / 中创）、国产浏览器（红莲花 / 奇安信可信浏览器）
+- 国产 CPU（鲲鹏 / 飞腾 / 龙芯 / 海光）架构适配
+- 国密合规（SM2/SM3/SM4 / 国密 TLS）与安全通信
+- 政务专网 / 等保 / 密评专项检查
+
+**主要特性**：
+- 用例 ID 格式 `XC_{模块缩写}_{序号}`
+- 覆盖国产软硬栈兼容矩阵与政务合规检查项
+- 国密算法替换（RSA→SM2、MD5/SHA→SM3、AES→SM4）与降级/回退用例
+- 信创专项策略家族：`equivalence_boundary` + `attack_surface`（等保/密评）
+- 复杂政务安全审计转交 multi-agent-test-auditor
+- 缺陷与追溯回写 test-case-defect-manager
+
+**调用方式**：
+```
+/test-case-xinchuang [需求文档或国产栈说明] [选项]
+```
+
+**详细文档**：[test-case-xinchuang](../test-case-xinchuang/SKILL.md)
+
+### test-case-execution-helper
+
+**功能**：手工测试执行助手（探索式 / 巡检 / 偶现复现）
+
+**适用场景**：
+- 按用例执行并记录实际结果（通过/失败/阻塞）
+- 探索式测试 charter 设计与执行
+- 巡检式测试（关键链路定期走查）
+- 偶现/难复现问题的复现尝试与证据沉淀
+
+**主要特性**：
+- 5 个动作：`record` / `session` / `patrol` / `repro` / `report`
+- 执行记录 ID 格式 `EX_{模块缩写}_{序号}`（如 `EX_LOGIN_001`）
+- 失败用例一键回写 test-case-defect-manager 并建立追溯
+- 偶现问题复现模板（环境/步骤/频率/证据），沉淀到 self-improving-helper
+- 与 trace.json 用例↔缺陷矩阵打通
+
+**调用方式**：
+```
+/test-case-execution-helper [动作] [参数]
+```
+
+**详细文档**：[test-case-execution-helper](../test-case-execution-helper/SKILL.md)
 
 ## 智能体人设
 
@@ -353,17 +511,23 @@ API测试用例已生成，共15条。是否需要：
 智能体主动推荐后续服务，根据当前任务和上下文，智能推荐下一步可以使用的SKILL和服务。
 
 #### 主动推荐逻辑
+- **生成前**：调用 knowledge-base 检索同类功能模板和最佳实践，注入生成上下文
 - 生成测试用例后，主动推荐测试用例评审
 - 评审测试用例后，主动推荐自动化转换
 - 转换自动化测试后，主动推荐测试报告生成
+- 测试执行发现缺陷后，主动推荐 test-case-defect-manager 录入缺陷并建立追溯
 - 根据文档类型，主动推荐相关的知识库查询
+- **生成后**：调用 self-improving-helper 记录本次生成的不足和用户反馈，下次生成时读取历史反馈避免重复犯错
 
 #### 推荐服务列表
-1. **test-case-reviewer** - 评审测试用例质量
-2. **test-case-automation-guide** - 转换为自动化测试
-3. **test-case-report-generator** - 生成测试报告
-4. **knowledge-base** - 查询测试知识和最佳实践
-5. **self-improving-helper** - 提交反馈和改进建议
+1. **knowledge-base** - 生成前查询测试知识和最佳实践（few-shot 注入）
+2. **test-case-reviewer** - 评审测试用例质量
+3. **test-case-automation-guide** - 转换为自动化测试
+4. **test-case-report-generator** - 生成测试报告
+5. **test-case-defect-manager** - 缺陷生命周期管理与用例↔缺陷追溯（闭环）
+6. **self-improving-helper** - 生成后提交反馈和改进建议（闭环）
+7. **test-case-xinchuang** - 信创/国产化/政务合规测试（国产栈适配场景）
+8. **test-case-execution-helper** - 手工测试执行与偶现复现辅助（执行阶段）
 
 ## 常见问题
 
@@ -399,6 +563,39 @@ API测试用例已生成，共15条。是否需要：
 - 联系技术支持
 
 ## 版本历史
+
+### v3.3.1 (2026-09-04)
+- `--type` 参数补充说明：本 SKILL 为**路由入口**，`security`/`performance` 会转交专门 SKILL 生成，与 generator-core（生成器）的枚举语义区分
+- 简介段测试类型由中文改为英文枚举（functional / boundary / negative / security / performance）
+- 修复与 test-case-generator-core 的 `--type` 枚举"看似矛盾"问题：路由范围（10 项）≠ 生成范围（8 项），已在两侧参数说明中显式声明
+
+### v3.3.0 (2026-09-03)
+- 主入口注册 test-case-xinchuang（信创/国产化/政务适配）与 test-case-execution-helper（手工测试执行助手）两个专门 SKILL
+- 「根据文档类型选择」表新增信创/国产化/政务需求、手工执行/探索式/巡检/复现路由
+- 「根据需求选择」表新增信创适配、手工测试执行路由
+- 专门SKILL 段新增 xinchuang / execution-helper 两个详细说明
+- 推荐服务列表新增 test-case-xinchuang 与 test-case-execution-helper
+- 迭代次数：1
+
+### v3.2.0 (2026-08-20)
+- 主入口注册 test-case-security-generator（安全测试）、test-case-defect-manager（缺陷管理）、jmeter-test-script-generator（性能测试）三个专门 SKILL
+- 「根据文档类型选择」表新增安全需求/威胁建模、性能需求/压测目标路由
+- 「根据需求选择」表新增安全测试用例、性能测试脚本、缺陷管理/追溯路由
+- 专门SKILL 段新增 security / defect / jmeter 三个详细说明
+- 主动推荐逻辑新增缺陷录入与追溯闭环
+- 推荐服务列表新增 test-case-defect-manager
+- 对齐 [_shared/standards.md](../_shared/standards.md) 新增的「关联缺陷ID」字段和缺陷 ID 格式
+- 迭代次数：1
+
+### v3.1.0 (2026-08-18)
+- 引用 [_shared/standards.md](../_shared/standards.md) 公共标准
+- type 枚举对齐公共标准（新增 equivalence/unit/e2e/compatibility/security）
+- 修复 format 默认值不一致（csv → md）
+- 修复 frontmatter（------ → ---，加 version/last_updated）
+- 所有详细文档链接改为相对路径
+- 代码类型分流：core 生成单测 + automation-guide 做自动化转换
+- 强化 knowledge-base/self-improving-helper 闭环说明
+- 迭代次数：1
 
 ### v3.0.0 (2026-03-18)
 - 重构为测试用例生成系统主入口

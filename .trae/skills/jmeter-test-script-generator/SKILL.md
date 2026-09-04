@@ -1,11 +1,27 @@
 ---
 name: "jmeter-test-script-generator"
 description: "一键生成JMeter测试脚本 - 从接口文档或API描述快速生成可直接运行的JMeter .jmx测试计划，支持HTTP请求、断言、变量提取、并发配置等。Invoke when user asks to create JMeter scripts, performance test plans, or .jmx files."
+version: "2.0.0"
+last_updated: "2026-08-20"
 ---
 
 # JMeter测试脚本生成器
 
-这个Skill专门用于从接口文档或API描述快速生成可直接运行的JMeter测试脚本（.jmx格式）。它支持各种常见的性能测试场景，包括单接口测试、多接口流程测试、并发测试、压力测试等。
+本 SKILL 遵循 [_shared/standards.md](../_shared/standards.md) 的公共标准（ID 格式、用例结构、测试类型、测试层级、策略家族、金字塔比例、FIRST 原则、schema 校验、错误处理）。
+
+这个skill专门用于从接口文档或API描述快速生成可直接运行的JMeter测试脚本（.jmx格式）。它支持各种常见的性能测试场景，包括单接口测试、多接口流程测试、并发测试、压力测试等。
+
+## 与测试用例体系的关系
+
+本 SKILL 产出的 `.jmx` 脚本即性能测试的**可执行用例**。每份脚本生成时同时产出一份用例元数据表（含 `用例ID` / `测试层级` / `策略家族` / `关联缺陷ID` 字段），用于与其他测试用例统一追溯。
+
+- **测试类型**：`performance`（对齐 [测试类型枚举](../_shared/standards.md#五测试类型枚举)）
+- **测试层级**：`integration`（单接口/多接口流程）或 `e2e`（完整业务主流程性能）
+- **策略家族**：`perf_profile`（阶梯/脉冲/雪崩负载，对齐 [测试策略家族](../_shared/standards.md#五-b测试策略家族与测试类型正交)）
+- **用例 ID 格式**：`PERF_{模块缩写}_{序号}`（如 `PERF_LOGIN_001`），对齐 [用例 ID 格式](../_shared/standards.md#一用例-id-格式)
+- **闭环支持**：生成前查询 [knowledge-base](../knowledge-base/SKILL.md) 获取同类性能测试模板；生成后写 [self-improving-helper](../self-improving-helper/SKILL.md) 记录性能瓶颈与用户反馈
+
+> ⚠️ 复杂性能审计场景（容量规划/雪崩注入/性能基线退化根因）应转交 [multi-agent-test-auditor](../multi-agent-test-auditor/SKILL.md) 执行多视角对抗审计，本 SKILL 面向脚本生成。
 
 ## 📋 快速参考卡片
 
@@ -191,11 +207,31 @@ description: "一键生成JMeter测试脚本 - 从接口文档或API描述快速
 
 ### 五阶段工作流
 
-1. **Define scope（需求分析）**：理解业务场景、接口信息、性能目标
-2. **Create strategy（方案设计）**：确定测试类型、并发模型、监控方案
-3. **Write tests（脚本开发）**：生成.jmx脚本、参数化、断言配置
-4. **Review checklist（脚本评审）**：检查线程组、参数化、断言、指标采集
-5. **Execute & report（执行报告）**：提供运行说明、指标分析、问题排查
+1. **Define scope（需求分析）**：理解业务场景、接口信息、性能目标；调用 [knowledge-base](../knowledge-base/SKILL.md) 检索同类性能测试模板
+2. **Create strategy（方案设计）**：确定测试类型、并发模型、监控方案；为本份脚本分配 `PERF_{模块}_{序号}` 用例 ID
+3. **Write tests（脚本开发）**：生成.jmx脚本、参数化、断言配置；同步产出用例元数据表（见下）
+4. **Review checklist（脚本评审）**：检查线程组、参数化、断言、指标采集；按 [输出 schema 校验](../_shared/standards.md#十一输出-schema-校验) 自检
+5. **Execute & report（执行报告）**：提供运行说明、指标分析、问题排查；调用 [self-improving-helper](../self-improving-helper/SKILL.md) 记录性能瓶颈与用户反馈
+
+### 用例元数据表输出
+
+每份 `.jmx` 脚本生成时，必须同时输出一份元数据表（Markdown 或 JSON），用于纳入统一追溯体系：
+
+| 字段 | 说明 | 示例 |
+|------|------|------|
+| 用例ID | `PERF_{模块缩写}_{序号}` | PERF_LOGIN_001 |
+| 脚本文件 | 对应的 .jmx 文件名 | login_stress.jmx |
+| 模块 | 功能模块 | 用户登录 |
+| 测试类型 | 固定 `performance` | performance |
+| 测试层级 | integration / e2e | integration |
+| 策略家族 | `perf_profile` | perf_profile |
+| 测试场景 | 按 `模块_功能点_场景_预期` 格式 | 用户登录_1000并发_响应时间_P95≤500ms |
+| 性能目标 | TPS / P95 / 错误率 | TPS≥800, P95≤500ms, 错误率<0.5% |
+| 优先级 | P0/P1/P2/P3 | P0 |
+| 关联缺陷ID | 测试中发现的缺陷（对齐 [test-case-defect-manager](../test-case-defect-manager/SKILL.md)） | BUG_LOGIN_003 |
+| 路径式命名 | `/suite/perf_profile/<域>/<功能>/<场景>` | /suite/perf_profile/user/login/stress_1000 |
+
+> 元数据表写入 `jmx` 同目录的 `{脚本名}.meta.md`，供 [test-case-report-generator](../test-case-report-generator/SKILL.md) 和 [test-case-defect-manager](../test-case-defect-manager/SKILL.md) 读取。
 
 ### 典型对话示例
 
@@ -1411,6 +1447,16 @@ jmeter -n -t test.jmx -l results.jtl -Jthreads=100 -Jduration=600
 ```
 
 ## 版本历史
+
+### v2.0.0 (2026-08-20)
+- 引用 [_shared/standards.md](../_shared/standards.md) 公共标准，消除与其他测试 SKILL 的孤岛状态
+- 用例 ID 改为 `PERF_{模块缩写}_{序号}` 格式，对齐公共 ID 规范
+- 测试类型固定为 `performance`，测试层级标注 integration/e2e，策略家族标注 `perf_profile`
+- 五阶段工作流新增 knowledge-base 生成前查询和 self-improving-helper 生成后反馈闭环
+- 新增「用例元数据表输出」段，每份 .jmx 同步产出 `.meta.md`，纳入统一追溯体系
+- 新增「与测试用例体系的关系」段，明确与 multi-agent-test-auditor 的边界
+- 元数据表新增「关联缺陷ID」字段，对齐 test-case-defect-manager
+- 迭代次数：1
 
 ### v1.1.1 (2026-05-29)
 - 新增references/参考文档目录

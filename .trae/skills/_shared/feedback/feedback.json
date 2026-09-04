@@ -1,0 +1,17 @@
+{
+  "version": "1.0",
+  "schema": {
+    "feedback_id": "FB{YYYYMMDD}{seq}",
+    "type": "error|suggestion|bug|improvement|other",
+    "priority": "high|medium|low",
+    "skill": "string",
+    "content": "string",
+    "user_id": "string|anonymous",
+    "timestamp": "ISO8601",
+    "status": "pending|processing|resolved|closed",
+    "resolution": "string",
+    "resolved_at": "ISO8601|null"
+  },
+  "entries": [],
+  "lessons": []
+}
